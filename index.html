@@ -1,0 +1,325 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#4263eb">
+<title>My Notes</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Arial,sans-serif;background:#f4f6fc;color:#20243a}
+button,input,textarea,select{font:inherit}
+button{border:0;border-radius:10px;padding:11px 14px;cursor:pointer}
+.primary{background:#4263eb;color:white}
+.soft{background:#e9edff;color:#3449b7}
+.danger{background:#ffeded;color:#b42318}
+.hidden{display:none!important}
+.layout{min-height:100vh;display:grid;grid-template-columns:225px 1fr}
+aside{padding:22px 16px;background:white;border-right:1px solid #e4e8f1}
+.brand{font-size:23px;font-weight:800;margin-bottom:22px}
+.logo{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#7895ff,#354ac0);color:white;margin-right:7px}
+nav button{display:block;width:100%;text-align:left;background:transparent;margin:5px 0;color:#4d5670}
+nav button.active{background:#e9edff;color:#354bc0}
+main{padding:25px;max-width:1100px;width:100%;margin:auto;min-width:0}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:28px;margin:0 0 5px}
+.muted{font-size:13px;color:#778096}
+.field{width:100%;padding:12px;border:1px solid #dfe3ee;border-radius:10px;margin:6px 0 14px;background:white}
+.search{max-width:360px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px}
+.card,.panel{background:white;border:1px solid #e5e9f2;border-radius:15px;padding:17px}
+.card{cursor:pointer;min-height:150px;overflow-wrap:anywhere}
+.card h3{margin:0 0 9px}
+.card p{white-space:pre-wrap;color:#636c81;font-size:14px;max-height:95px;overflow:hidden}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1}
+.tag{font-size:12px;color:#354bc0;background:#edf0ff;border-radius:20px;padding:4px 8px}
+textarea.field{min-height:180px;resize:vertical}
+.auth{max-width:430px;margin:7vh auto;padding:25px;background:white;border-radius:18px}
+#status,#appStatus{padding:10px;border-radius:9px;background:#edf0ff;font-size:13px;overflow-wrap:anywhere;margin:12px 0}
+@media(max-width:650px){.layout{grid-template-columns:1fr}aside{padding:13px;border-right:0;border-bottom:1px solid #e5e9f2}.brand{margin-bottom:10px}nav{display:flex;overflow-x:auto}nav button{white-space:nowrap;width:auto}main{padding:15px}header{align-items:stretch}.search{max-width:none}}
+</style>
+</head>
+<body>
+<section id="login" class="auth">
+  <div class="brand"><span class="logo">✎</span>My Notes</div>
+  <p class="muted">Your notes, organized in one place.</p>
+  <div id="status">Firebase setup is needed before you can sign in.</div>
+  <label>Email address</label>
+  <input id="email" class="field" type="email" placeholder="you@example.com" autocomplete="email">
+  <label>Password</label>
+  <input id="password" class="field" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+  <button id="signIn" class="primary" style="width:100%">Log in</button>
+  <button id="signUp" class="soft" style="width:100%;margin-top:9px">Create account</button>
+</section>
+
+<div id="app" class="layout hidden">
+  <aside>
+    <div class="brand"><span class="logo">✎</span>My Notes</div>
+    <p id="account" class="muted"></p>
+    <nav>
+      <button class="active" data-view="all">▤ All notes</button>
+      <button data-view="favorites">☆ Favorites</button>
+      <button data-view="folders">▣ Folders</button>
+    </nav>
+    <div class="toolbar"><button id="newNote" class="primary">＋ New note</button></div>
+    <button id="newFolder" class="soft" style="width:100%;margin-bottom:8px">＋ New folder</button>
+    <button id="export" class="soft" style="width:100%;margin-bottom:8px">Export notes</button>
+    <button id="import" class="soft" style="width:100%;margin-bottom:8px">Import notes</button>
+    <input id="file" class="hidden" type="file" accept=".json,application/json">
+    <button id="logout" style="width:100%">Log out</button>
+  </aside>
+  <main>
+    <header>
+      <div><h1 id="heading">All notes</h1><p id="count" class="muted">Your personal notebook</p></div>
+      <input id="search" class="field search" placeholder="Search notes...">
+    </header>
+    <div id="appStatus"></div>
+    <div class="toolbar" id="folderBar">
+      <select id="filterFolder" class="field" style="max-width:220px"><option value="">All folders</option></select>
+    </div>
+    <div id="notes" class="grid"></div>
+    <div id="empty" class="panel hidden">No notes found. Tap New note to get started.</div>
+    <section id="editor" class="panel hidden" style="margin-top:20px">
+      <h2 id="editorTitle">New note</h2>
+      <label>Title</label><input id="title" class="field" placeholder="Note title">
+      <label>Content</label><textarea id="body" class="field" placeholder="Write your thoughts here..."></textarea>
+      <label>Folder</label><select id="folder" class="field"><option value="">No folder</option></select>
+      <label>Tags (separate with commas)</label><input id="tags" class="field" placeholder="work, ideas, personal">
+      <div class="row">
+        <button id="favorite" class="soft">☆ Add to favorites</button>
+        <button id="save" class="primary">Save note</button>
+        <button id="cancel" class="soft">Cancel</button>
+      </div>
+      <button id="delete" class="danger hidden" style="margin-top:10px">Delete note</button>
+    </section>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* We will add your Firebase web-app settings in the next step. */
+const firebaseConfig = {
+  apiKey: "ADD_API_KEY",
+  authDomain: "ADD_PROJECT_ID.firebaseapp.com",
+  projectId: "ADD_PROJECT_ID",
+  appId: "ADD_APP_ID"
+};
+
+const $ = id => document.getElementById(id);
+let auth, db, user, notes = [], folders = [], editing = null;
+let favorite = false, view = "all", stopNotes, stopFolders;
+
+function message(text, target = "status") {
+  $(target).textContent = text;
+}
+function report(error) {
+  console.error(error);
+  message(error.message || "Something went wrong.");
+}
+function noteRef() {
+  return db.collection("users").doc(user.uid).collection("notes");
+}
+function folderRef() {
+  return db.collection("users").doc(user.uid).collection("folders");
+}
+function connectFirebase() {
+  if (firebaseConfig.apiKey === "ADD_API_KEY" ||
+      firebaseConfig.projectId === "ADD_PROJECT_ID" ||
+      firebaseConfig.appId === "ADD_APP_ID") {
+    $("signIn").disabled = true;
+    $("signUp").disabled = true;
+    message("Next step: add your Firebase web-app configuration. Login is not connected yet.");
+    return;
+  }
+  try {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    $("signIn").disabled = false;
+    $("signUp").disabled = false;
+    auth.onAuthStateChanged(u => {
+      user = u;
+      $("login").classList.toggle("hidden", !!u);
+      $("app").classList.toggle("hidden", !u);
+      if (u) {
+        $("account").textContent = u.email || "Signed in";
+        subscribe();
+      } else {
+        if (stopNotes) stopNotes();
+        if (stopFolders) stopFolders();
+        notes = []; folders = [];
+      }
+    });
+  } catch (e) { report(e); }
+}
+function subscribe() {
+  if (stopNotes) stopNotes();
+  if (stopFolders) stopFolders();
+  stopNotes = noteRef().orderBy("updatedAt", "desc").onSnapshot(s => {
+    notes = s.docs.map(d => ({id:d.id,...d.data()}));
+    render();
+  }, report);
+  stopFolders = folderRef().orderBy("name").onSnapshot(s => {
+    folders = s.docs.map(d => ({id:d.id,...d.data()}));
+    renderFolders();
+    render();
+  }, report);
+}
+function renderFolders() {
+  ["filterFolder","folder"].forEach(id => {
+    const el = $(id), old = el.value;
+    el.innerHTML = id === "filterFolder"
+      ? '<option value="">All folders</option>'
+      : '<option value="">No folder</option>';
+    folders.forEach(f => {
+      const o = document.createElement("option");
+      o.value = f.id; o.textContent = f.name; el.appendChild(o);
+    });
+    if ([...el.options].some(o => o.value === old)) el.value = old;
+  });
+}
+function render() {
+  const q = $("search").value.toLowerCase().trim();
+  const f = $("filterFolder").value;
+  const list = notes.filter(n =>
+    (!q || `${n.title||""} ${n.body||""} ${(n.tags||[]).join(" ")}`.toLowerCase().includes(q)) &&
+    (!f || n.folderId === f) &&
+    (view !== "favorites" || n.favorite)
+  );
+  $("heading").textContent = view === "favorites" ? "Favorites" : view === "folders" ? "Folders" : "All notes";
+  $("count").textContent = `${view === "folders" ? folders.length : list.length} items`;
+  $("notes").innerHTML = "";
+  if (view === "folders") {
+    folders.forEach(fold => {
+      const card = document.createElement("article"); card.className = "card";
+      const h = document.createElement("h3"); h.textContent = "▣ " + fold.name;
+      const p = document.createElement("p"); p.textContent = `${notes.filter(n=>n.folderId===fold.id).length} notes`;
+      const b = document.createElement("button"); b.className = "danger"; b.textContent = "Delete folder";
+      b.onclick = async e => {
+        e.stopPropagation();
+        if (confirm("Delete this folder? Notes will be kept.")) {
+          try {
+            for (const n of notes.filter(n=>n.folderId===fold.id)) await noteRef().doc(n.id).update({folderId:""});
+            await folderRef().doc(fold.id).delete();
+          } catch (err) { report(err); }
+        }
+      };
+      card.append(h,p,b);
+      card.onclick = () => { view="all"; $("filterFolder").value=fold.id; render(); };
+      $("notes").appendChild(card);
+    });
+  } else {
+    list.forEach(n => {
+      const card = document.createElement("article"); card.className = "card";
+      const h = document.createElement("h3"); h.textContent = (n.favorite?"★ ":"") + (n.title||"Untitled note");
+      const p = document.createElement("p"); p.textContent = n.body||"No text";
+      const foot = document.createElement("div"); foot.className = "muted";
+      foot.textContent = (n.tags||[]).join(", ") || folders.find(f=>f.id===n.folderId)?.name || "Note";
+      card.append(h,p,foot); card.onclick = () => openEditor(n);
+      $("notes").appendChild(card);
+    });
+  }
+  $("empty").classList.toggle("hidden", view==="folders" ? folders.length>0 : list.length>0);
+}
+function openEditor(n=null) {
+  editing = n?.id || null; favorite = !!n?.favorite;
+  $("editorTitle").textContent = n ? "Edit note" : "New note";
+  $("title").value = n?.title || "";
+  $("body").value = n?.body || "";
+  $("tags").value = (n?.tags || []).join(", ");
+  $("folder").value = n?.folderId || "";
+  $("favorite").textContent = favorite ? "★ Favorite" : "☆ Add to favorites";
+  $("delete").classList.toggle("hidden", !n);
+  $("editor").classList.remove("hidden");
+  $("editor").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("signIn").onclick = async () => {
+  try { await auth.signInWithEmailAndPassword($("email").value.trim(), $("password").value); }
+  catch(e) { report(e); }
+};
+$("signUp").onclick = async () => {
+  try {
+    await auth.createUserWithEmailAndPassword($("email").value.trim(), $("password").value);
+  } catch(e) { report(e); }
+};
+$("logout").onclick = () => auth.signOut().catch(report);
+$("newNote").onclick = () => openEditor();
+$("cancel").onclick = () => $("editor").classList.add("hidden");
+$("favorite").onclick = () => {
+  favorite = !favorite;
+  $("favorite").textContent = favorite ? "★ Favorite" : "☆ Add to favorites";
+};
+$("save").onclick = async () => {
+  const title = $("title").value.trim(), body = $("body").value.trim();
+  if (!title && !body) return alert("Please enter a title or some text.");
+  const data = {
+    title, body, folderId:$("folder").value,
+    tags:$("tags").value.split(",").map(t=>t.trim()).filter(Boolean),
+    favorite, updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    if (editing) await noteRef().doc(editing).update(data);
+    else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await noteRef().add(data);
+    }
+    $("editor").classList.add("hidden");
+    message("Note saved to your account.", "appStatus");
+  } catch(e) { report(e); }
+};
+$("delete").onclick = async () => {
+  if (editing && confirm("Delete this note permanently?")) {
+    try { await noteRef().doc(editing).delete(); $("editor").classList.add("hidden"); }
+    catch(e) { report(e); }
+  }
+};
+$("newFolder").onclick = async () => {
+  const name = prompt("Enter folder name:");
+  if (!name?.trim()) return;
+  try { await folderRef().add({name:name.trim(),createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }
+  catch(e) { report(e); }
+};
+$("search").oninput = render;
+$("filterFolder").onchange = render;
+document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => {
+  view = b.dataset.view;
+  document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x===b));
+  $("folderBar").classList.toggle("hidden",view==="folders");
+  render();
+});
+$("export").onclick = () => {
+  const data = JSON.stringify({notes,folders},null,2);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([data],{type:"application/json"}));
+  a.download = "my-notes-backup.json"; a.click();
+  URL.revokeObjectURL(a.href);
+};
+$("import").onclick = () => $("file").click();
+$("file").onchange = async () => {
+  const file = $("file").files[0]; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data.notes)) throw Error("Invalid backup file.");
+    if (!confirm("Import notes? Existing notes will not be deleted.")) return;
+    for (const n of data.notes) {
+      await noteRef().add({
+        title:n.title||"", body:n.body||"", tags:Array.isArray(n.tags)?n.tags:[],
+        favorite:!!n.favorite, folderId:"",
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    message("Notes imported.", "appStatus");
+  } catch(e) { report(e); }
+  $("file").value = "";
+};
+connectFirebase();
+</script>
+</body>
+          </html>
+          
